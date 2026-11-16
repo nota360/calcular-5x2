@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Simulador Escala 5x2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: formulário curto à esquerda, decisão à direita; no celular, empilha. */
+:root{
+  --bg:#eef2f1; --surface:#ffffff; --ink:#14222c; --muted:#56656f; --line:#d6dedc;
+  --accent:#0b6670; --accent-soft:#dcecec; --on-accent:#ffffff;
+  --good:#1d7447; --good-soft:#e1f1e8; --warn:#9a5b06; --warn-soft:#fbefd9; --crit:#ad2a20; --crit-soft:#fae3e0;
+  --font-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --radius:10px;
+  color-scheme: light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg); color:var(--ink); font-family:var(--font-body); font-size:16px; line-height:1.45}
+h1,h2,h3{font-family:var(--font-display); text-wrap:balance; margin:0; line-height:1.15}
+h1{font-size:1.9rem; font-weight:700}
+h2{font-size:1.15rem; font-weight:700}
+h3{font-size:1rem; font-weight:700}
+.num, td, .tile b{font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px; margin:0 auto; padding:20px 16px 48px}
+header.top{display:grid; gap:14px; margin:0 auto 18px; max-width:980px}
+.sub{color:var(--muted); max-width:70ch; margin:4px 0 0}
+.step{padding:10px 14px; border-left:1px solid var(--line)}
+.step:first-child{border-left:0}
+.step .when{font-size:.8rem; color:var(--muted); text-transform:uppercase; letter-spacing:.04em}
+.step .what{font-weight:700}
+.step.now{background:var(--accent-soft)}
+.step small{color:var(--muted); display:block}
+.layout{display:grid; gap:18px; max-width:980px; margin:0 auto}
+.cta{display:flex; flex-wrap:wrap; gap:16px; align-items:center; justify-content:space-between; background:var(--accent); color:var(--on-accent); border-radius:var(--radius); padding:18px 20px}
+.cta p{margin:0; max-width:52ch}
+.cta .who{font-family:var(--font-display); font-size:1.2rem; font-weight:700}
+.btn-cta{border:0; background:#ffffff; color:var(--accent); font-weight:700; font-size:1.05rem; letter-spacing:.02em; padding:13px 20px; border-radius:10px; box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.btn-cta:hover{background:#eef7f7}
+.btn-cta:focus-visible{outline:3px solid #ffffff; outline-offset:3px}
+dialog#cad{border:0; padding:0; border-radius:14px; width:min(640px, calc(100% - 24px)); max-height:calc(100% - 24px); background:var(--bg); color:var(--ink); box-shadow:0 20px 60px rgba(10,30,40,.35)}
+dialog#cad::backdrop{background:rgba(12,28,36,.55)}
+.cad-head{position:sticky; top:0; z-index:2; display:flex; justify-content:space-between; align-items:center; gap:10px; padding:14px 16px; background:var(--surface); border-bottom:1px solid var(--line)}
+.cad-body{padding:14px 16px}
+.cad-foot{position:sticky; bottom:0; z-index:2; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; padding:12px 16px; background:var(--surface); border-top:1px solid var(--line)}
+.tag-ex{display:inline-block; font-size:.78rem; font-weight:700; background:var(--warn-soft); color:var(--warn); padding:2px 9px; border-radius:999px; margin-left:8px; vertical-align:middle; font-family:var(--font-body)}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:16px; display:grid; gap:12px}
+.form{display:grid; gap:12px}
+.form .card h2{display:flex; gap:8px; align-items:baseline}
+.form .card h2 .n{font-size:.8rem; color:var(--accent); font-family:var(--font-body)}
+label{font-weight:600; font-size:.92rem}
+.hint{font-size:.85rem; color:var(--muted); font-weight:400}
+input[type=text], input[type=number], input[type=time], select{
+  font:inherit; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:7px 9px; width:100%; min-width:0}
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.field{display:grid; gap:4px}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{position:relative}
+.chip input{position:absolute; opacity:0; inset:0; cursor:pointer}
+.chip span{display:inline-block; padding:5px 11px; border-radius:999px; border:1px solid var(--line); font-weight:600; font-size:.9rem; background:var(--bg); color:var(--muted)}
+.chip input:checked + span{background:var(--accent); color:var(--on-accent); border-color:var(--accent)}
+.chip input:focus-visible + span{outline:2px solid var(--accent); outline-offset:2px}
+.dayline{display:grid; grid-template-columns:96px 1fr 1fr; gap:8px; align-items:center}
+.dayline.off .t{opacity:.35; pointer-events:none}
+.switch{display:flex; align-items:center; gap:6px; font-weight:600}
+.switch input{width:18px; height:18px; accent-color:var(--accent)}
+.team{display:grid; gap:8px}
+.team-head, .team-row{display:grid; grid-template-columns:1fr 64px 84px 30px; gap:6px; align-items:center}
+.team-head{font-size:.78rem; color:var(--muted); font-weight:600}
+.team-row .cov{display:flex; justify-content:center}
+.team-row .cov input{width:20px; height:20px; accent-color:var(--accent)}
+button{font:inherit; cursor:pointer}
+.btn{border:1px solid var(--accent); color:var(--accent); background:transparent; border-radius:8px; padding:7px 12px; font-weight:600}
+.btn.solid{background:var(--accent); color:var(--on-accent)}
+.icon-btn{border:0; background:transparent; color:var(--muted); font-size:1.2rem; line-height:1; padding:4px; border-radius:6px}
+.icon-btn:hover{color:var(--crit)}
+details summary{cursor:pointer; font-family:var(--font-display); font-weight:700; font-size:1.05rem}
+details[open] summary{margin-bottom:10px}
+details .inner{display:grid; gap:12px}
+
+.results{display:grid; gap:14px}
+.bar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between}
+.seg{display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface)}
+.seg label{padding:7px 12px; cursor:pointer; position:relative; font-size:.9rem}
+.seg input{position:absolute; opacity:0}
+.seg label:has(input:checked){background:var(--accent); color:var(--on-accent)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent); outline-offset:-2px}
+.tiles{display:grid}
+.verdict{padding:12px 14px; border-radius:8px; border-left:5px solid; font-size:1.02rem}
+.verdict.good{background:var(--good-soft); border-color:var(--good)}
+.verdict.crit{background:var(--crit-soft); border-color:var(--crit)}
+.cmp td:nth-child(2), .cmp td:nth-child(3), .cmp th:nth-child(2), .cmp th:nth-child(3){text-align:right; white-space:nowrap}
+.cmp td:nth-child(3){background:var(--accent-soft)}
+.delta{display:block; font-size:.82rem; color:var(--muted); font-weight:600}
+.delta.bad{color:var(--crit)}
+.next{display:flex; flex-wrap:wrap; gap:6px; align-items:baseline; padding-top:4px}
+.next span{color:var(--muted)}
+.next a{color:var(--accent); font-weight:600}
+.tile{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 14px}
+.tile b{display:block; font-family:var(--font-display); font-size:1.6rem; line-height:1.1}
+.tile span{color:var(--muted); font-size:.88rem}
+.tile.crit{border-left:4px solid var(--crit)} .tile.warn{border-left:4px solid var(--warn)} .tile.good{border-left:4px solid var(--good)}
+table{border-collapse:collapse; width:100%; font-size:.93rem}
+th,td{text-align:left; padding:8px 8px; border-bottom:1px solid var(--line); vertical-align:top}
+th{font-size:.78rem; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em}
+.scroll{overflow-x:auto}
+.pill{display:inline-block; padding:2px 9px; border-radius:999px; font-size:.8rem; font-weight:700; white-space:nowrap}
+.pill.good{background:var(--good-soft); color:var(--good)} .pill.warn{background:var(--warn-soft); color:var(--warn)} .pill.crit{background:var(--crit-soft); color:var(--crit)} .pill.info{background:var(--accent-soft); color:var(--accent)}
+.sugs{display:grid; gap:10px}
+.grp{font-size:.82rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-top:6px}
+.sug{border:1px solid var(--line); border-radius:var(--radius); padding:14px; display:grid; gap:8px; background:var(--surface)}
+.sug.best{border:2px solid var(--accent)}
+.sug-head{display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:space-between}
+.sug-head h3{flex:1 1 220px}
+.sug ul{margin:0; padding-left:18px; display:grid; gap:3px}
+.sug .cost{font-weight:700}
+.sug .care{font-size:.88rem; color:var(--muted)}
+.rank{font-family:var(--font-display); color:var(--accent); font-weight:700}
+.roster td, .roster th{text-align:center; white-space:nowrap; padding:7px 6px}
+.roster td:first-child, .roster th:first-child{text-align:left}
+.c-off{background:var(--good-soft); color:var(--good); font-weight:700}
+.c-closed{color:var(--muted); background:var(--bg)}
+.c-gap{background:var(--crit-soft); color:var(--crit); font-weight:700}
+.c-owner{background:var(--warn-soft); color:var(--warn); font-weight:700}
+.legend{display:flex; flex-wrap:wrap; gap:12px; font-size:.85rem; color:var(--muted)}
+.legend i{display:inline-block; width:12px; height:12px; border-radius:3px; vertical-align:-1px; margin-right:4px}
+textarea{width:100%; min-height:190px; font:inherit; font-size:.92rem; color:var(--ink); background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px}
+.notes{font-size:.88rem; color:var(--muted); display:grid; gap:6px}
+.notes p{margin:0}
+.msg{font-size:.88rem; color:var(--good); min-height:1.2em}
+.empty{color:var(--muted)}
+@media (prefers-reduced-motion: no-preference){ .sug, .tile{transition:border-color .2s} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Simulador da escala 5x2</h1>
+      <p class="sub">Cadastre a empresa e veja onde a nova regra aperta e quais caminhos fazem mais sentido: fechar um dia, revezar folgas, o dono cobrir ou contratar. Leva uns 3 minutos.</p>
+    </div>
+  </header>
+
+  <div class="layout">
+    <div class="cta">
+      <div><div class="who" id="ctaWho">Simulação de exemplo: loja com 5 funcionários</div><p id="ctaText">Cadastre a sua empresa para ver as sugestões para o seu caso.</p></div>
+      <button type="button" class="btn-cta" id="openCad">CLIQUE AQUI PARA SIMULAR SUA EMPRESA</button>
+    </div>
+
+    <!-- CADASTRO (popup) -->
+    <dialog id="cad" aria-labelledby="cadTitle">
+    <div class="cad-head"><h2 id="cadTitle">Cadastro da empresa</h2><button type="button" class="icon-btn" id="closeCad" aria-label="Fechar cadastro">×</button></div>
+    <form class="form cad-body" id="f" onsubmit="return false">
+      <section class="card">
+        <h2><span class="n">1</span>Atividade</h2>
+        <div class="field"><label for="segmento">Ramo da empresa</label>
+          <select id="segmento"></select>
+          <span class="hint">Ao trocar, a equipe e o horário de exemplo mudam. Depois é só ajustar.</span>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">2</span>Horário de funcionamento</h2>
+        <div class="field">
+          <label>Dias de semana abertos</label>
+          <div class="chips" id="wkchips"></div>
+        </div>
+        <div class="dayline" id="line-wk"><span class="switch">Seg a sex</span>
+          <input class="t" type="time" id="wkOpen" aria-label="Abre (seg a sex)">
+          <input class="t" type="time" id="wkClose" aria-label="Fecha (seg a sex)">
+        </div>
+        <div class="dayline" id="line-sat"><label class="switch" for="sat"><input type="checkbox" id="sat"> Sábado</label>
+          <input class="t" type="time" id="satOpen" aria-label="Abre (sábado)">
+          <input class="t" type="time" id="satClose" aria-label="Fecha (sábado)">
+        </div>
+        <div class="dayline" id="line-sun"><label class="switch" for="sun"><input type="checkbox" id="sun"> Domingo</label>
+          <input class="t" type="time" id="sunOpen" aria-label="Abre (domingo)">
+          <input class="t" type="time" id="sunClose" aria-label="Fecha (domingo)">
+        </div>
+        <span class="hint" id="hoursInfo"></span>
+        <span class="hint">Já vem com o horário comercial (seg a sex 08h às 18h, sáb 08h às 12h). Ajuste só se for diferente.</span>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">3</span>Equipe (CLT)</h2>
+        <span class="hint">Marque <b>Sempre alguém</b> quando a função não pode ficar vazia enquanto a empresa está aberta (ex.: caixa, farmacêutico).</span>
+        <div class="team">
+          <div class="team-head"><span>Função</span><span>Pessoas</span><span style="text-align:center">Sempre alguém</span><span></span></div>
+          <div id="teamRows" class="team"></div>
+        </div>
+        <div><button type="button" class="btn" id="addRole">+ Adicionar função</button></div>
+      </section>
+
+      <section class="card">
+        <h2><span class="n">4</span>Dono</h2>
+        <div class="field"><label for="owner">O dono ou alguém da família pode cobrir folgas?</label>
+          <select id="owner">
+            <option value="sim">Sim, sem problema</option>
+            <option value="pouco">Só de vez em quando (até 1 dia por semana)</option>
+            <option value="nao">Não</option>
+          </select>
+        </div>
+      </section>
+
+    </form>
+    <div class="cad-foot"><button type="button" class="btn" id="reset">Limpar e voltar ao exemplo</button><button type="button" class="btn solid" id="doneCad">Ver sugestões</button></div>
+    </dialog>
+
+    <!-- RESULTADOS -->
+    <section class="results" aria-live="polite">
+      <div class="bar">
+        <h2 id="resTitle">Resultado</h2>
+      </div>
+      <div class="tiles" id="tiles"></div>
+
+      <section class="card">
+        <h2>Como fica cada função</h2>
+        <div class="scroll"><table id="roleTable"></table></div>
+      </section>
+
+      <section class="card">
+        <h2>Caminhos que resolvem</h2>
+        <div class="sugs" id="sugs"></div>
+      </section>
+
+      <section class="card">
+        <div class="bar">
+          <h2>Escala sugerida para uma semana</h2>
+          <select id="rosterMode" aria-label="Escala para qual cenário" style="width:auto"></select>
+        </div>
+        <div class="scroll"><table class="roster" id="roster"></table></div>
+        <div class="legend">
+          <span><i style="background:var(--good-soft)"></i>Folga</span>
+          <span><i style="background:var(--bg); border:1px solid var(--line)"></i>Empresa fechada</span>
+          <span><i style="background:var(--warn-soft)"></i>Dono ou família cobre</span>
+          <span><i style="background:var(--crit-soft)"></i>Sem ninguém na função</span>
+        </div>
+        <div class="notes" id="rosterNotes"></div>
+      </section>
+
+
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+const DAYS=['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+const DF=['segunda','terça','quarta','quinta','sexta','sábado','domingo'];
+const SALMIN=1621;
+const SEG={
+  varejo:{label:'Loja / varejo', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:0, margin:30,
+    team:[['Caixa',1,true],['Vendedor(a)',3,false],['Estoquista',1,false]]},
+  mercado:{label:'Mercado / mercearia', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:1, margin:20,
+    team:[['Caixa',3,true],['Repositor(a)',2,false],['Açougueiro(a)',1,true]]},
+  padaria:{label:'Padaria / lanchonete', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:0, margin:35,
+    team:[['Balconista',3,true],['Padeiro(a)',2,true],['Caixa',1,true]]},
+  restaurante:{label:'Restaurante / bar', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:1, margin:35,
+    team:[['Cozinheiro(a)',2,true],['Garçom/garçonete',3,false],['Caixa',1,true],['Auxiliar de cozinha',1,false]]},
+  salao:{label:'Salão / estética', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:1, margin:50,
+    team:[['Recepção',1,true],['Cabeleireiro(a)',2,false],['Manicure',2,false]]},
+  farmacia:{label:'Farmácia', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:6, margin:25,
+    team:[['Farmacêutico(a)',2,true],['Balconista',2,true],['Caixa',1,true]]},
+  oficina:{label:'Oficina / serviços técnicos', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:5, margin:45,
+    team:[['Atendimento',1,true],['Mecânico(a)',2,false],['Auxiliar',1,false]]},
+  escritorio:{label:'Escritório / administrativo', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:4, margin:60,
+    team:[['Recepção',1,true],['Administrativo',2,false]]},
+  industria:{label:'Indústria / produção', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:5, margin:30,
+    team:[['Encarregado(a)',1,true],['Produção',5,false]]},
+  outro:{label:'Outra atividade', wk:[1,1,1,1,1], wkOpen:'08:00', wkClose:'18:00', sat:true, satOpen:'08:00', satClose:'12:00', sun:false, sunOpen:'08:00', sunClose:'12:00', weak:0, margin:30,
+    team:[['Atendimento',1,true],['Equipe',2,false]]}
+};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtH=h=>(Math.round(h*10)/10).toLocaleString('pt-BR')+'h';
+const brl=v=>'R$ '+Math.round(v).toLocaleString('pt-BR');
+const pct=v=>(Math.round(v*1000)/10).toLocaleString('pt-BR')+'%';
+const pl=(n,s,p)=>n===1?s:p;
+
+let state=null;
+let rosterTouched=false;
+function defaults(seg){
+  const s=SEG[seg]||SEG.varejo;
+  return {seg, wk:[...s.wk], wkOpen:s.wkOpen, wkClose:s.wkClose, sat:s.sat, satOpen:s.satOpen, satClose:s.satClose, sun:s.sun, sunOpen:s.sunOpen, sunClose:s.sunClose,
+    team:s.team.map(t=>({name:t[0],n:t[1],cover:t[2]})), owner:'pouco', weak:String(s.weak), weakF:'0.5',
+    sal:SALMIN, regime:'simples', jor:'40'};
+}
+function load(){ try{ const raw=localStorage.getItem('sim5x2'); if(raw){ const o=JSON.parse(raw); if(o&&o.team&&SEG[o.seg]){ o.jor='40'; return o; } } }catch(e){} return null; }
+function save(){ try{ localStorage.setItem('sim5x2', JSON.stringify(state)); }catch(e){} }
+
+// ---------- UI build ----------
+const segSel=$('segmento');
+Object.entries(SEG).forEach(([k,v])=>{const o=document.createElement('option'); o.value=k; o.textContent=v.label; segSel.appendChild(o);});
+const wkc=$('wkchips');
+DAYS.slice(0,5).forEach((d,i)=>{wkc.insertAdjacentHTML('beforeend',`<label class="chip"><input type="checkbox" id="wk${i}" aria-label="${DF[i]}"><span>${d}</span></label>`);});
+
+function fillForm(){
+  segSel.value=state.seg;
+  state.wk.forEach((v,i)=>$('wk'+i).checked=!!v);
+  ['wkOpen','wkClose','satOpen','satClose','sunOpen','sunClose'].forEach(k=>$(k).value=state[k]);
+  $('sat').checked=state.sat; $('sun').checked=state.sun;
+  $('owner').value=state.owner;
+  renderTeam();
+}
+function renderTeam(){
+  const box=$('teamRows'); box.innerHTML='';
+  state.team.forEach((r,i)=>{
+    box.insertAdjacentHTML('beforeend',`<div class="team-row">
+      <input type="text" id="tn${i}" value="${esc(r.name)}" aria-label="Função ${i+1}">
+      <input type="number" id="tq${i}" min="0" max="99" value="${r.n}" aria-label="Pessoas em ${esc(r.name)}">
+      <span class="cov"><input type="checkbox" id="tc${i}" ${r.cover?'checked':''} aria-label="${esc(r.name)} precisa sempre de alguém"></span>
+      <button type="button" class="icon-btn" data-del="${i}" aria-label="Remover ${esc(r.name)}">×</button></div>`);
+  });
+}
+function readForm(){
+  state.wk=[0,1,2,3,4].map(i=>$('wk'+i).checked?1:0);
+  ['wkOpen','wkClose','satOpen','satClose','sunOpen','sunClose'].forEach(k=>state[k]=$(k).value);
+  state.sat=$('sat').checked; state.sun=$('sun').checked;
+  state.team=state.team.map((r,i)=>({name:($('tn'+i).value||'Função').trim(), n:Math.max(0,Math.min(99,parseInt($('tq'+i).value,10)||0)), cover:$('tc'+i).checked}));
+  state.owner=$('owner').value;
+  state.jor='40';
+}
+
+// ---------- modelo ----------
+function hrs(a,b){ if(!a||!b) return 0; const [h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number); const d=(h2*60+m2)-(h1*60+m1); return d>0?d/60:0; }
+function schedule(){
+  const out=[];
+  const mm=t=>{ if(!t) return 0; const [a,b]=t.split(':').map(Number); return a*60+b; };
+  for(let i=0;i<5;i++) out.push({h: state.wk[i]?hrs(state.wkOpen,state.wkClose):0, o:mm(state.wkOpen)});
+  out.push({h: state.sat?hrs(state.satOpen,state.satClose):0, o:mm(state.satOpen)});
+  out.push({h: state.sun?hrs(state.sunOpen,state.sunClose):0, o:mm(state.sunOpen)});
+  return out;
+}
+function topSum(arr,k){ return [...arr].sort((a,b)=>b-a).slice(0,k).reduce((s,x)=>s+x,0); }
+function evalConfig(sch,L){
+  const open=sch.map((d,i)=>d.h>0?i:-1).filter(i=>i>=0);
+  const hs=open.map(i=>sch[i].h);
+  const D=open.length, H=hs.reduce((s,x)=>s+x,0), maxH=hs.length?Math.max(...hs):0;
+  const capNew=Math.min(L, topSum(hs.map(h=>Math.min(8,h)),5));
+  const capOld=Math.min(44, topSum(hs.map(h=>Math.min(8,h)),6));
+  const roles=state.team.map(r=>{
+    const n=r.n;
+    if(r.cover){
+      const need=D?Math.max(Math.ceil(D/5), Math.ceil(H/Math.max(capNew,1)-1e-9), maxH>8?2:1):0;
+      return {...r, need, gapDays:Math.max(0,D-5*n), gapDaysOld:Math.max(0,D-6*n), gapH:Math.max(0,H-capNew*n), gapHOld:Math.max(0,H-capOld*n)};
+    }
+    return {...r, presOld:D?n*Math.min(6,D)/D:0, presNew:D?n*Math.min(5,D)/D:0, lostH:n*(44-L)};
+  });
+  const cov=roles.filter(r=>r.cover);
+  return {open,D,H,maxH,roles,
+    gapH:cov.reduce((s,r)=>s+r.gapH,0), gapHOld:cov.reduce((s,r)=>s+r.gapHOld,0),
+    gapDays:cov.reduce((s,r)=>s+r.gapDays,0),
+    extra:cov.reduce((s,r)=>s+Math.max(0,r.gapH-r.gapHOld),0),
+    N:roles.reduce((s,r)=>s+r.n,0), F:roles.filter(r=>!r.cover).reduce((s,r)=>s+r.n,0),
+    lostTeamH:roles.reduce((s,r)=>s+r.n*(44-L),0)};
+}
+function weakDay(sch){
+  if(state.weak!=='x' && sch[+state.weak] && sch[+state.weak].h>0) return {i:+state.weak, guessed:false};
+  let best=-1; sch.forEach((d,i)=>{ if(d.h>0 && (best<0 || d.h<sch[best].h || (d.h===sch[best].h && i===0))) best=i; });
+  return {i:best, guessed:true};
+}
+function secondDay(sch,w){
+  const pref=w===6?[0]:w===0?[6]:[6,0];
+  for(const p of pref) if(p!==w && sch[p].h>0) return p;
+  let best=-1; sch.forEach((d,i)=>{ if(i!==w && d.h>0 && (best<0||d.h<sch[best].h)) best=i; }); return best;
+}
+function diasTxt(h){
+  const d=h/8;
+  if(d<=0.6) return 'meio dia'; if(d<=1.25) return '1 dia'; if(d<=1.75) return '1 dia e meio';
+  return Math.round(d)+' dias';
+}
+function fteTxt(f){
+  if(f<=0) return 'nenhum funcionário';
+  if(f<0.35) return 'cerca de um terço de funcionário';
+  if(f<0.65) return 'cerca de meio funcionário';
+  if(f<1.25) return 'cerca de 1 funcionário';
+  return 'cerca de '+Math.round(f)+' funcionários';
+}
+function hireCost(h,L){
+  const sal=parseFloat(state.sal)||SALMIN; const fac=state.regime==='simples'?1.36:1.68;
+  if(h<=0) return {cost:0,label:''};
+  if(h<=30) return {cost:sal*(h/L)*fac, label:`1 pessoa em meio período, trabalhando o equivalente a ${diasTxt(h)} por semana`, people:1, part:true};
+  const p=Math.ceil(h/L-1e-9); return {cost:sal*p*fac, label:`${p} ${pl(p,'pessoa','pessoas')} em período integral`, people:p, part:false};
+}
+function closeShare(sch,closed,factors){
+  const open=sch.filter(d=>d.h>0).length; const fs=factors.reduce((s,x)=>s+x,0);
+  return fs/((open-closed.length)+fs);
+}
+
+// ---------- cenários ----------
+function scenarios(sch,L){
+  const base=evalConfig(sch,L);
+  const ownerCap=state.owner==='sim'?Infinity:state.owner==='pouco'?Math.min(8,base.maxH||8):0;
+  const extraOf=e=>e.roles.reduce((t,r,i)=>t+(r.cover?Math.max(0,r.gapH-base.roles[i].gapHOld):0),0);
+  const G=extraOf(base);
+  const covNames=base.roles.filter(r=>r.cover&&(r.gapDays>0||r.gapH>r.gapHOld+0.01)).map(r=>r.name);
+  const who=covNames.join(', ')||'as funções';
+  const art=i=>i>=5?'o':'a', em=i=>i>=5?'no':'na';
+  const list=[];
+  // completa uma opção que sozinha não fecha a conta: dono cobre o resto, ou folguista
+  function complete(sc){
+    const res=sc.residual;
+    if(res<=0.01){ sc.residual=0; return sc; }
+    if(ownerCap>=res && sc.id!=='dono'){
+      sc.title+=' + dono cobre o que faltar';
+      sc.lines.push(`O dono ou familiar cobre ${who} o equivalente a ${diasTxt(res)} por semana.`);
+    } else {
+      const hc=hireCost(res,L);
+      sc.title+=hc.part?' + folguista em meio período':' + contratar';
+      sc.lines.push(`${hc.label}, para cobrir o que faltar em ${who}.`);
+      sc.cost=(sc.cost||0)+hc.cost;
+      sc.costLabel='Aumenta a folha. O custo exato é calculado pela contabilidade (Pontual).';
+    }
+    sc.residual=0; sc.combo=true; return sc;
+  }
+
+  // 1 só revezar folgas (só aparece se resolve sozinho)
+  if(G<=0.01){
+    list.push({id:'reorg', title:'Manter o horário e revezar as folgas', residual:0, cost:0, costLabel:'Sem custo extra',
+      lines:['A equipe atual dá conta. Cada funcionário tem 2 folgas, espalhadas para nenhum dia ficar vazio.'],
+      care:'A escala abaixo mostra uma sugestão de folgas.'});
+  }
+
+  // 2 treinar alguém da equipe
+  if(G>0 && base.F>0){
+    const covered=Math.min(G,base.F*10);
+    const flex=base.roles.filter(r=>!r.cover&&r.n>0).map(r=>r.name);
+    list.push(complete({id:'poli', title:`Treinar alguém da equipe (${flex.join(', ')}) para cobrir ${who} nas folgas`,
+      residual:G-covered, cost:0, costLabel:'Custo baixo (treinamento, talvez uma gratificação)',
+      lines:[`Cobre as folgas de ${who} sem contratar.`, `Nos dias de cobertura, ${flex[0]||'a equipe'} fica com uma pessoa a menos.`],
+      care:'Se a pessoa assumir com frequência uma função de salário maior, registre a função como acumulada ou ajuste o cargo para evitar risco trabalhista.'}));
+  }
+
+  // 3 dono cobre
+  if(G>0 && ownerCap>0){
+    const covered=Math.min(G,ownerCap);
+    list.push(complete({id:'dono', title:'O dono ou alguém da família cobre as folgas',
+      residual:G-covered, cost:0, costLabel:'Sem custo na folha',
+      lines:[`O dono ou familiar fica em ${who} o equivalente a ${diasTxt(covered)} por semana.`],
+      care:'Prende o dono na operação. Familiar que trabalha com frequência e subordinação pode caracterizar vínculo de emprego.'}));
+  }
+
+  // 4 fechar 2 dias por semana
+  const pairs=[[5,6],[6,0]];
+  pairs.forEach(([a,b])=>{
+    const nowOpen=[a,b].filter(i=>sch[i].h>0);
+    if(!nowOpen.length) return;
+    const s2=sch.map((d,i)=>(i===a||i===b)?{h:0,o:d.o}:d);
+    if(!s2.some(d=>d.h>0)) return;
+    const e2=evalConfig(s2,L);
+    const already=[a,b].filter(i=>sch[i].h<=0);
+    const nm=`${DF[a]} e ${DF[b]}`;
+    list.push(complete({id:`fecha${a}${b}`, sched:s2, title:`Fechar ${nm}`,
+      residual:extraOf(e2), cost:0, closing:true,
+      costLabel:`Sem custo na folha. Deixa de vender ${nowOpen.length>1?'nesses dias':em(nowOpen[0])+' '+DF[nowOpen[0]]}; parte dos clientes volta em outro dia.`,
+      lines:[`A empresa fica fechada 2 dias por semana${already.length?` (${art(already[0])} ${DF[already[0]]} já é fechad${art(already[0])} hoje)`:''}. Todo mundo folga junto nesses dias e a escala fica simples.`],
+      care:'Teste por 4 a 6 semanas e compare o faturamento antes de decidir de vez. Avise os clientes com antecedência.'}));
+  });
+
+  // 5 contratar
+  if(G>0){
+    const hc=hireCost(G,L);
+    list.push({id:'contrata', title:hc.part?'Contratar um folguista em meio período':'Contratar mais gente',
+      residual:0, cost:hc.cost, costLabel:'Aumenta a folha. O custo exato é calculado pela contabilidade (Pontual).',
+      lines:[`${hc.label}, cobrindo ${who} nas folgas.`, 'Mantém o horário e as vendas como estão.'],
+      care:hc.part?'Meio período também tem direito a 2 folgas. Contrato intermitente é outra opção para cobrir só os picos.':'Antes de contratar, veja se fechar 2 dias resolve.'});
+  }
+
+  // escolher recomendado: primeiro o que resolve sozinho e sem custo
+  const pure=list.filter(x=>!x.combo);
+  let best=null, why='';
+  const get=id=>pure.find(x=>x.id===id);
+  if(get('reorg')){best=get('reorg'); why='A equipe atual consegue cobrir tudo só revezando as folgas.';}
+  else if(get('poli')){best=get('poli'); why='Resolve sem contratar e sem mexer no horário.';}
+  else if(get('dono')&&state.owner==='sim'){best=get('dono'); why='O dono pode cobrir e não aumenta a folha.';}
+  else {
+    const closes=pure.filter(x=>x.closing).sort((x,y)=>lostOpen(x)-lostOpen(y));
+    if(closes.length){best=closes[0]; why='Resolve sem contratar, e a escala fica simples: todo mundo folga nos mesmos dias.';}
+    else if(get('contrata')){best=get('contrata'); why='Mantém o horário e as vendas como estão.';}
+  }
+  function lostOpen(x){ return sch.reduce((t,d,i)=>t+(d.h>0&&x.sched[i].h<=0?d.h:0),0); }
+  if(!best) best=list.slice().sort((x,y)=>(x.cost||0)-(y.cost||0))[0];
+  best.best=true; best.why=why;
+  const ord=x=>(x.best?-1e12:0)+(x.cost||0)+(x.closing?0.5:0)+(x.combo?1:0);
+  list.sort((x,y)=>ord(x)-ord(y));
+  return {base,list,best,wd:{i:-1}};
+}
+
+// ---------- escala ----------
+function roster(sch,L,wIdx){
+  const open=sch.map((d,i)=>d.h>0?i:-1).filter(i=>i>=0);
+  const D=open.length, extraOff=Math.max(0,D-5);
+  const rows=[], ownerCells=Array(7).fill(null), gaps=[];
+  const ownerCap=state.owner==='sim'?7:state.owner==='pouco'?1:0; let ownerUsed=0;
+  const glob=Array(7).fill(0); open.forEach(i=>glob[i]=state.team.reduce((a,t)=>a+t.n,0));
+  const order=state.team.map((r,i)=>i).sort((a,b)=>(state.team[b].cover-state.team[a].cover)||(state.team[a].n-state.team[b].n));
+  order.map(i=>state.team[i]).forEach(r=>{
+    const pres=Array(7).fill(0); open.forEach(i=>pres[i]=r.n);
+    const people=[];
+    for(let p=0;p<r.n;p++){
+      const off=new Set();
+      for(let k=0;k<extraOff;k++){
+        const cand=open.filter(i=>!off.has(i));
+        cand.sort((a,b)=> (pres[b]-pres[a]) || (glob[b]-glob[a]) || ((b===wIdx)-(a===wIdx)) || ((b===6)-(a===6)) || ((b===5)-(a===5)) || (sch[a].h-sch[b].h) || (((a+p)%7)-((b+p)%7)) );
+        const d=cand[0]; off.add(d); pres[d]--; glob[d]--;
+      }
+      people.push(off);
+    }
+    people.forEach((off,p)=>{
+      rows.push({label:r.n>1?`${r.name} ${p+1}`:r.name, cells:DAYS.map((_,i)=> sch[i].h<=0?{t:'closed'}: off.has(i)?{t:'off'}:(()=>{ const h=sch[i].h, w=Math.min(8,h), span=Math.min(h, w+(w>6?1:0)), o=sch[i].o||0; const st=p%2===0?o:o+(h-span)*60; return {t:'work',h:w,s:st,e:st+span*60}; })())});
+    });
+    if(r.cover){
+      open.forEach(i=>{ if(pres[i]===0){
+        const already=!!ownerCells[i];
+        if(already||ownerUsed<ownerCap){ ownerCells[i]=(already?ownerCells[i]+', ':'')+r.name; if(!already) ownerUsed++; }
+        else gaps.push({i,role:r.name});
+      } });
+    }
+  });
+  return {rows, ownerCells, gaps, open, extraOff};
+}
+
+// ---------- render ----------
+function render(){
+  const L=parseInt(state.jor,10);
+  const sch=schedule();
+  const {base,list,best,wd}=scenarios(sch,L);
+  $('hoursInfo').textContent=base.D?`Aberto ${base.D} ${pl(base.D,'dia','dias')} por semana.`:'Marque pelo menos um dia aberto.';
+  $('resTitle').innerHTML=state.cad?'Resultado da sua empresa':'Resultado <span class="tag-ex">exemplo</span>';
+  $('ctaWho').textContent=state.cad?`Sua empresa · ${SEG[state.seg].label}, ${base.N} ${pl(base.N,'funcionário','funcionários')}`:`Simulação de exemplo: ${SEG[state.seg].label.toLowerCase()} com ${base.N} ${pl(base.N,'funcionário','funcionários')}`;
+  $('ctaText').textContent=state.cad?`Aberto ${base.D} ${pl(base.D,'dia','dias')} por semana. Clique para alterar os dados.`:'Cadastre a sua empresa para ver as sugestões para o seu caso.';
+  $('openCad').textContent=state.cad?'EDITAR CADASTRO DA EMPRESA':'CLIQUE AQUI PARA SIMULAR SUA EMPRESA';
+
+  // tiles
+  const riskRoles=base.roles.filter(r=>r.cover&&(r.gapDays>0||r.gapH>r.gapHOld+0.01));
+  const fte=base.lostTeamH/L;
+  const covAll=base.roles.filter(r=>r.cover);
+  const gapNames=covAll.filter(r=>r.gapH>0).map(r=>r.name);
+  const verdictOk=riskRoles.length===0;
+  const verdict=verdictOk
+    ? `<div class="verdict good"><b>A equipe atual dá conta da regra nova.</b> É só organizar as 2 folgas de cada um.</div>`
+    : `<div class="verdict crit"><b>Precisa de ajuste:</b> ${riskRoles.map(r=>`<b>${esc(r.name)}</b>${r.gapDays>0?` fica ${r.gapDays} ${pl(r.gapDays,'dia','dias')} por semana sem ninguém`:' fica sem ninguém em parte do horário (abertura, fechamento ou almoço)'}`).join('; ')}.</div>`;
+  const N=base.N;
+  let cmp=`<table class="cmp"><thead><tr><th></th><th>Hoje</th><th>Com a regra nova</th></tr></thead><tbody>
+    <tr><td>Dias de trabalho de cada funcionário</td><td>6</td><td><b>5</b></td></tr>
+    <tr><td>Horas de cada funcionário na semana</td><td>44h</td><td><b>${L}h</b></td></tr>
+    <tr><td>Horas da equipe toda (${N} ${pl(N,'pessoa','pessoas')})</td><td>${fmtH(N*44)}</td><td><b>${fmtH(N*L)}</b> <span class="delta">−${fmtH(base.lostTeamH)}, ${fteTxt(fte)}</span></td></tr>`;
+  if(gapNames.length) cmp+=`<tr><td>Horas sem ninguém em ${esc(gapNames.join(', '))}<br><span class="hint">hoje quem cobre é o dono ou um colega</span></td><td>${fmtH(base.gapHOld)}</td><td><b>${fmtH(base.gapH)}</b>${base.extra>0?` <span class="delta bad">+${fmtH(base.extra)}</span>`:''}</td></tr>`;
+  cmp+='</tbody></table>';
+  $('tiles').innerHTML=`<section class="card diag">
+    <h2>${state.cad?'O que muda na sua empresa':'O que muda nesta empresa de exemplo'}</h2>
+    ${verdict}
+    <div class="next"><span>Caminho sugerido:</span> <b>${esc(best.title)}</b> <a href="#sugs">ver detalhes</a></div>
+  </section>`;
+
+  // tabela por função
+  let t='<thead><tr><th>Função</th><th>Pessoas</th><th>Hoje (6x1)</th><th>Com a 5x2</th><th>Situação</th></tr></thead><tbody>';
+  base.roles.forEach(r=>{
+    if(r.cover){
+      const hoje=r.gapHOld>0?'o dono ou um colega cobre parte do horário':'sempre tem alguém';
+      const nova=[r.gapDays>0?`${r.gapDays} ${pl(r.gapDays,'dia','dias')} por semana sem ninguém`:r.gapH>0?'sem ninguém em parte do horário':''];
+      const st=r.gapH<=0?'<span class="pill good">Coberta</span>':(r.gapDays>0||r.gapH>r.gapHOld+0.01)?`<span class="pill crit">Precisa de ${r.need} ${pl(r.need,'pessoa','pessoas')}</span>`:'<span class="pill warn">Igual a hoje</span>';
+      t+=`<tr><td><b>${esc(r.name)}</b><br><span class="hint">sempre alguém</span></td><td class="num">${r.n}</td><td>${hoje}</td><td>${nova.join('')||'sempre tem alguém'}</td><td>${st}</td></tr>`;
+    } else {
+      const st=r.n===0?'<span class="pill info">Sem pessoas</span>':r.presNew<1?'<span class="pill warn">Dias com ninguém</span>':'<span class="pill info">Revezar folgas</span>';
+      t+=`<tr><td><b>${esc(r.name)}</b></td><td class="num">${r.n}</td><td>${(Math.round(r.presOld*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td>${(Math.round(r.presNew*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td>${st}</td></tr>`;
+    }
+  });
+  $('roleTable').innerHTML=t+'</tbody>';
+
+  // sugestões
+  let lastGroup='';
+  $('sugs').innerHTML=list.map((s,k)=>{
+    const group=s.best?'best':'ok';
+    const head=group!==lastGroup&&group!=='best'?'<h3 class="grp">Outras opções</h3>':'';
+    lastGroup=group;
+    const tag=s.best?'<span class="pill info">Mais indicado</span>':'';
+    return head+`<article class="sug ${s.best?'best':''}">
+      <div class="sug-head"><h3><span class="rank">${k+1}.</span> ${esc(s.title)}</h3>${tag}</div>
+      ${s.best&&s.why?`<div><b>Por quê:</b> ${esc(s.why)}</div>`:''}
+      <ul>${s.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+      <div class="cost">${esc(s.costLabel)}</div>
+      <div class="care">${esc(s.care)}</div></article>`;
+  }).join('');
+
+  // escala
+  const modeSel=$('rosterMode'); const prev=modeSel.value;
+  const modes=[{v:'atual',t:'Com o horário atual',sched:sch}];
+  list.filter(s=>s.sched).forEach(s=>modes.push({v:s.id,t:s.title.replace(/ \(.*\)$/,''),sched:s.sched}));
+  modeSel.innerHTML=modes.map(m=>`<option value="${m.v}">${esc(m.t)}</option>`).join('');
+  const def=best.sched?best.id:'atual';
+  modeSel.value=modes.some(m=>m.v===prev)&&rosterTouched?prev:def;
+  const m=modes.find(x=>x.v===modeSel.value)||modes[0];
+  const R=roster(m.sched,L,wd.i);
+  const hhmm=m=>{ const h=Math.floor(m/60), mi=Math.round(m%60); return String(h).padStart(2,'0')+(mi?':'+String(mi).padStart(2,'0'):'h'); };
+  let rt='<thead><tr><th>Pessoa</th>'+DAYS.map(d=>`<th>${d}</th>`).join('')+'</tr></thead><tbody>';
+  R.rows.forEach(r=>{
+    rt+=`<tr><td>${esc(r.label)}</td>`+r.cells.map(c=>c.t==='closed'?'<td class="c-closed">fechado</td>':c.t==='off'?'<td class="c-off">folga</td>':`<td>${hhmm(c.s)}–${hhmm(c.e)}</td>`).join('')+`</tr>`;
+  });
+  const gapByDay=Array(7).fill('');
+  R.gaps.forEach(g=>gapByDay[g.i]+=(gapByDay[g.i]?', ':'')+g.role);
+  if(R.ownerCells.some(Boolean)) rt+='<tr><td><b>Dono/família</b></td>'+DAYS.map((_,i)=>R.ownerCells[i]?`<td class="c-owner">${esc(R.ownerCells[i])}</td>`:'<td></td>').join('')+'</tr>';
+  if(gapByDay.some(Boolean)) rt+='<tr><td><b>Sem ninguém</b></td>'+DAYS.map((_,i)=>gapByDay[i]?`<td class="c-gap">${esc(gapByDay[i])}</td>`:'<td></td>').join('')+'</tr>';
+  $('roster').innerHTML=rt+'</tbody>';
+  const notes=[];
+  if(m.sched.some(d=>d.h>8)) notes.push('Os horários já incluem 1h de almoço. Quando a função tem mais de uma pessoa, um entra mais cedo e outro sai mais tarde. Onde só tem 1 pessoa, o começo ou o fim do dia e o almoço ficam com o dono, um colega treinado ou um folguista.');
+  if(m.sched[6].h>0) notes.push('Gire a folga de domingo entre as pessoas. No comércio, cada um precisa folgar no domingo pelo menos 1 vez a cada 3 semanas.');
+  if(R.extraOff===0) notes.push('Com a empresa abrindo 5 dias ou menos, os dias fechados já são as 2 folgas de todo mundo.');
+  $('rosterNotes').innerHTML=notes.map(n=>`<p>${esc(n)}</p>`).join('');
+
+  // resumo
+  const lines=[];
+  lines.push(`SIMULAÇÃO ESCALA 5x2${state.empresa?' · '+state.empresa:''}`);
+  lines.push(`Regra nova: 2 folgas por semana e jornada de até ${L}h.`);
+  lines.push(`Funcionamento atual: ${base.D} dias, ${fmtH(base.H)} por semana. Equipe: ${base.N} ${pl(base.N,'pessoa','pessoas')}.`);
+  lines.push(`Impacto: a equipe perde ${fmtH(base.lostTeamH)} de trabalho por semana (≈ ${(Math.round(fte*10)/10).toLocaleString('pt-BR')} pessoa).`);
+  const att=base.roles.filter(r=>r.cover&&r.gapH>0);
+  if(att.length){ lines.push('Atenção:'); att.forEach(r=>lines.push(`- ${r.name} (${r.n} ${pl(r.n,'pessoa','pessoas')}): ${r.gapDays>0?r.gapDays+' '+pl(r.gapDays,'dia','dias')+' por semana sem ninguém; ':''}faltam ${fmtH(r.gapH)} por semana (hoje ${fmtH(r.gapHOld)}).`)); }
+  lines.push('');
+  lines.push(`Caminho mais indicado: ${best.title}.`);
+  if(best.why) lines.push(`Por quê: ${best.why}`);
+  lines.push(`Custo/impacto: ${best.costLabel}.`);
+  const others=list.filter(s=>!s.best).slice(0,3);
+  if(others.length){ lines.push(''); lines.push('Outras opções:'); others.forEach(s=>lines.push(`- ${s.title}: ${s.costLabel}.`)); }
+  lines.push(''); lines.push('Valores estimados para apoio à decisão. Antes de mudar, conferir a convenção coletiva da categoria.');
+  if($('summary')) $('summary').value=lines.join('\n');
+  save();
+}
+
+// ---------- eventos ----------
+function boot(seg){ state=defaults(seg); fillForm(); render(); }
+state=load();
+if(state){ fillForm(); render(); } else boot('varejo');
+
+$('f').addEventListener('input',e=>{
+  if(e.target.id==='segmento') return;
+  state.cad=true; readForm(); if(/^(wk\d|sat|sun|wkOpen|wkClose|satOpen|satClose|sunOpen|sunClose)$/.test(e.target.id)){ }
+  render();
+});
+function applySeg(seg){ readForm(); const keep={cad:true}; state=Object.assign(defaults(seg),keep); rosterTouched=false; fillForm(); render(); }
+segSel.addEventListener('change',()=>applySeg(segSel.value));
+const dlg=$('cad');
+function openCad(){ try{ dlg.showModal(); }catch(e){ dlg.setAttribute('open',''); } const f=$('segmento'); if(f) f.focus(); }
+function closeCad(){ try{ dlg.close(); }catch(e){ dlg.removeAttribute('open'); } render(); $('resTitle').scrollIntoView({block:'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }
+$('openCad').addEventListener('click',openCad);
+$('closeCad').addEventListener('click',closeCad);
+$('doneCad').addEventListener('click',closeCad);
+dlg.addEventListener('click',e=>{ if(e.target===dlg) closeCad(); });
+$('rosterMode').addEventListener('change',()=>{ rosterTouched=true; render(); });
+$('reset').addEventListener('click',()=>{ state=null; boot(segSel.value||'varejo'); });
+})();
+</script>
+</body>
+</html>
