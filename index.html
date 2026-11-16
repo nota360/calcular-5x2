@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-/* Layout: formulário curto à esquerda, decisão à direita; no celular, empilha. */
+/* Layout: uma coluna; dados da empresa num popup (tela cheia no celular); resultado: diagnóstico, caminhos, escala, detalhe. */
 :root{
   --bg:#eef2f1; --surface:#ffffff; --ink:#14222c; --muted:#56656f; --line:#d6dedc;
   --accent:#0b6670; --accent-soft:#dcecec; --on-accent:#ffffff;
@@ -121,6 +121,17 @@ th{font-size:.78rem; color:var(--muted); font-weight:600; text-transform:upperca
 .sug .cost{font-weight:700}
 .sug .care{font-size:.88rem; color:var(--muted)}
 .rank{font-family:var(--font-display); color:var(--accent); font-weight:700}
+details.sug.alt{padding:0}
+details.sug.alt > summary{list-style:none; cursor:pointer; display:flex; gap:6px; align-items:center; padding:14px; font-family:var(--font-display); font-weight:700; min-height:52px}
+details.sug.alt > summary::-webkit-details-marker{display:none}
+details.sug.alt > summary .t{flex:1}
+details.sug.alt > summary .more::after{content:"Ver"; font-family:var(--font-body); font-size:.85rem; color:var(--accent); font-weight:600}
+details.sug.alt[open] > summary .more::after{content:"Fechar"}
+details.sug.alt > :not(summary){margin:0 14px}
+details.sug.alt[open]{padding-bottom:14px}
+details.sug.alt[open] > summary{padding-bottom:6px}
+details.sug.alt > ul{margin-bottom:8px; padding-left:32px}
+details.sug.alt .cost{margin-bottom:6px}
 .roster td, .roster th{text-align:center; white-space:nowrap; padding:7px 6px}
 .roster td:first-child, .roster th:first-child{text-align:left}
 .c-off{background:var(--good-soft); color:var(--good); font-weight:700}
@@ -135,26 +146,106 @@ textarea{width:100%; min-height:190px; font:inherit; font-size:.92rem; color:var
 .msg{font-size:.88rem; color:var(--good); min-height:1.2em}
 .empty{color:var(--muted)}
 @media (prefers-reduced-motion: no-preference){ .sug, .tile{transition:border-color .2s} }
+[hidden]{display:none !important}
+.hero{background:linear-gradient(160deg,#0b6670 0%,#084c54 100%); color:#fff; padding:32px 16px 72px}
+.hero-in{max-width:980px; margin:0 auto; display:grid; gap:8px}
+.hero .eyebrow{font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#a9dadf}
+.hero h1{font-size:2.1rem; line-height:1.1; max-width:20ch; color:#fff}
+.hero .sub{color:#d5ecee; margin:0; font-size:1.05rem; max-width:52ch}
+.wrap{margin-top:-48px; padding-top:0}
+.intro{box-shadow:0 10px 30px rgba(8,40,46,.12)}
+.intro-label{font-size:.78rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted)}
+.summary{box-shadow:0 10px 30px rgba(8,40,46,.12)}
+@media (min-width:760px){ .steps{grid-template-columns:repeat(3,1fr); gap:16px} .intro{padding:26px 28px} }
+.sr-only{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+.intro{background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:22px 20px; display:grid; gap:16px; justify-items:start}
+.intro h2{font-size:1.4rem}
+.steps{list-style:none; margin:0; padding:0; display:grid; gap:10px; counter-reset:st}
+.steps li{counter-increment:st; display:grid; grid-template-columns:32px 1fr; column-gap:10px; align-items:center}
+.steps li::before{content:counter(st); grid-row:span 2; width:32px; height:32px; border-radius:50%; background:var(--accent-soft); color:var(--accent); font-weight:700; display:grid; place-items:center}
+.steps li span{color:var(--muted); font-size:.92rem}
+.intro .btn-cta{background:var(--accent); color:var(--on-accent); font-size:1.1rem; padding:14px 26px; min-height:52px}
+.intro .btn-cta:hover{background:#09555d}
+.intro .btn-cta:focus-visible{outline:3px solid var(--accent); outline-offset:3px}
+.summary{display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:12px 16px}
+.summary p{margin:2px 0 0; color:var(--muted); font-size:.92rem}
+.summary .who{font-weight:700}
+.summary .actions{display:flex; gap:8px; flex-wrap:wrap}
+.btn{min-height:44px; padding:9px 16px}
+.btn.ghost{border-color:var(--line); color:var(--ink)}
+.icon-btn{min-width:44px; min-height:44px; font-size:1.5rem}
+.chip span{padding:8px 14px}
+.switch input, .team-row .cov input{width:22px; height:22px}
+input[type=text], input[type=number], input[type=time], select{min-height:44px; font-size:16px}
+#rosterMode{width:auto; max-width:100%}
+.roster-wrap{margin:0 -4px}
+.roster th:first-child, .roster td:first-child{position:sticky; left:0; background:var(--surface); z-index:1; box-shadow:1px 0 0 var(--line)}
+details.card > summary{list-style:none; display:flex; justify-content:space-between; align-items:center; min-height:28px}
+details.card > summary::after{content:"+"; font-size:1.3rem; color:var(--accent)}
+details.card[open] > summary::after{content:"−"}
+details.card > summary::-webkit-details-marker{display:none}
+@media (max-width:600px){
+  .wrap{padding:0 12px 32px; margin-top:-40px}
+  .hero{padding:24px 16px 60px}
+  .hero h1{font-size:1.6rem}
+  .hero .sub{font-size:.98rem}
+  .intro{padding:18px 16px}
+  .intro .btn-cta{width:100%}
+  .summary .actions, .summary .actions .btn{width:100%}
+  .summary .actions .btn{flex:1}
+  dialog#cad{width:100%; max-width:100%; height:100%; max-height:100%; margin:0; border-radius:0}
+  .cad-body{padding:12px}
+  .cad-foot .btn{flex:1}
+  .card{padding:14px 12px}
+  .team-head, .team-row{grid-template-columns:1fr 58px 62px 40px; gap:6px}
+  .team-head span:nth-child(3){font-size:.7rem}
+  .dayline{grid-template-columns:84px 1fr 1fr; gap:6px}
+  .bar{align-items:stretch}
+  #rosterMode{width:100%}
+  .roster td, .roster th{padding:7px 5px; font-size:.84rem}
+  .sug{padding:12px}
+  .sug-head h3{flex-basis:100%}
+  table.stack thead{display:none}
+  table.stack tr{display:grid; grid-template-columns:1fr auto; gap:2px 10px; padding:10px 0; border-bottom:1px solid var(--line)}
+  table.stack td{border:0; padding:0}
+  table.stack td[data-label]::before{content:attr(data-label) ": "; color:var(--muted); font-size:.82rem}
+  table.stack td:first-child{grid-column:1} table.stack td.st{grid-column:2; grid-row:1; text-align:right}
+  table.stack td.pc{display:none}
+  table.stack td.hj, table.stack td.nv{grid-column:1 / -1}
+}
+
 </style>
 </head>
 <body>
+<header class="hero">
+  <div class="hero-in">
+    <div class="eyebrow">Pontual Contabilidade · Fim da escala 6x1</div>
+    <h1>Como a sua empresa fica na escala 5x2</h1>
+    <p class="sub">Responda 3 perguntas rápidas e veja os caminhos que resolvem para o seu negócio.</p>
+  </div>
+</header>
 <div class="wrap">
-  <header class="top">
-    <div>
-      <h1>Simulador da escala 5x2</h1>
-      <p class="sub">Cadastre a empresa e veja onde a nova regra aperta e quais caminhos fazem mais sentido: fechar um dia, revezar folgas, o dono cobrir ou contratar. Leva uns 3 minutos.</p>
-    </div>
-  </header>
 
   <div class="layout">
-    <div class="cta">
-      <div><div class="who" id="ctaWho">Simulação de exemplo: loja com 5 funcionários</div><p id="ctaText">Cadastre a sua empresa para ver as sugestões para o seu caso.</p></div>
-      <button type="button" class="btn-cta" id="openCad">CLIQUE AQUI PARA SIMULAR SUA EMPRESA</button>
+    <section class="intro" id="intro">
+      <div class="intro-label">Em 3 passos</div>
+      <ol class="steps">
+        <li><b>Ramo e horário</b><span>Já vem com o horário comercial.</span></li>
+        <li><b>Sua equipe</b><span>Funções e quantas pessoas em cada uma.</span></li>
+        <li><b>O dono pode cobrir folgas?</b><span>Uma pergunta só.</span></li>
+      </ol>
+      <button type="button" class="btn-cta" id="openCad">Simular minha empresa</button>
+      <p class="hint">Leva uns 2 minutos. Nada fica salvo: cada vez que a página abre, começa do zero.</p>
+    </section>
+
+    <div class="summary" id="summaryBar" hidden>
+      <div><div class="who" id="ctaWho"></div><p id="ctaText"></p></div>
+      <div class="actions"><button type="button" class="btn" id="editCad">Editar dados</button><button type="button" class="btn ghost" id="restart">Recomeçar</button></div>
     </div>
 
     <!-- CADASTRO (popup) -->
     <dialog id="cad" aria-labelledby="cadTitle">
-    <div class="cad-head"><h2 id="cadTitle">Cadastro da empresa</h2><button type="button" class="icon-btn" id="closeCad" aria-label="Fechar cadastro">×</button></div>
+    <div class="cad-head"><h2 id="cadTitle">Dados da empresa</h2><button type="button" class="icon-btn" id="closeCad" aria-label="Fechar cadastro">×</button></div>
     <form class="form cad-body" id="f" onsubmit="return false">
       <section class="card">
         <h2><span class="n">1</span>Atividade</h2>
@@ -208,22 +299,15 @@ textarea{width:100%; min-height:190px; font:inherit; font-size:.92rem; color:var
       </section>
 
     </form>
-    <div class="cad-foot"><button type="button" class="btn" id="reset">Limpar e voltar ao exemplo</button><button type="button" class="btn solid" id="doneCad">Ver sugestões</button></div>
+    <div class="cad-foot"><button type="button" class="btn ghost" id="cancelCad">Cancelar</button><button type="button" class="btn solid" id="doneCad">Ver resultado</button></div>
     </dialog>
 
     <!-- RESULTADOS -->
-    <section class="results" aria-live="polite">
-      <div class="bar">
-        <h2 id="resTitle">Resultado</h2>
-      </div>
+    <section class="results" id="results" aria-live="polite" hidden>
+      <h2 id="resTitle" class="sr-only">Resultado da sua empresa</h2>
       <div class="tiles" id="tiles"></div>
 
-      <section class="card">
-        <h2>Como fica cada função</h2>
-        <div class="scroll"><table id="roleTable"></table></div>
-      </section>
-
-      <section class="card">
+      <section class="card" id="sugsCard">
         <h2>Caminhos que resolvem</h2>
         <div class="sugs" id="sugs"></div>
       </section>
@@ -231,19 +315,22 @@ textarea{width:100%; min-height:190px; font:inherit; font-size:.92rem; color:var
       <section class="card">
         <div class="bar">
           <h2>Escala sugerida para uma semana</h2>
-          <select id="rosterMode" aria-label="Escala para qual cenário" style="width:auto"></select>
+          <select id="rosterMode" aria-label="Escala para qual cenário"></select>
         </div>
-        <div class="scroll"><table class="roster" id="roster"></table></div>
+        <div class="scroll roster-wrap"><table class="roster" id="roster"></table></div>
         <div class="legend">
           <span><i style="background:var(--good-soft)"></i>Folga</span>
-          <span><i style="background:var(--bg); border:1px solid var(--line)"></i>Empresa fechada</span>
+          <span><i style="background:var(--bg); border:1px solid var(--line)"></i>Fechado</span>
           <span><i style="background:var(--warn-soft)"></i>Dono ou família cobre</span>
           <span><i style="background:var(--crit-soft)"></i>Sem ninguém na função</span>
         </div>
         <div class="notes" id="rosterNotes"></div>
       </section>
 
-
+      <details class="card">
+        <summary>Ver detalhe por função</summary>
+        <table id="roleTable" class="stack"></table>
+      </details>
     </section>
   </div>
 </div>
@@ -291,8 +378,9 @@ function defaults(seg){
     team:s.team.map(t=>({name:t[0],n:t[1],cover:t[2]})), owner:'pouco', weak:String(s.weak), weakF:'0.5',
     sal:SALMIN, regime:'simples', jor:'40'};
 }
-function load(){ try{ const raw=localStorage.getItem('sim5x2'); if(raw){ const o=JSON.parse(raw); if(o&&o.team&&SEG[o.seg]){ o.jor='40'; return o; } } }catch(e){} return null; }
-function save(){ try{ localStorage.setItem('sim5x2', JSON.stringify(state)); }catch(e){} }
+try{ localStorage.removeItem('sim5x2'); }catch(e){}
+function load(){ return null; }
+function save(){}
 
 // ---------- UI build ----------
 const segSel=$('segmento');
@@ -532,10 +620,10 @@ function render(){
   const sch=schedule();
   const {base,list,best,wd}=scenarios(sch,L);
   $('hoursInfo').textContent=base.D?`Aberto ${base.D} ${pl(base.D,'dia','dias')} por semana.`:'Marque pelo menos um dia aberto.';
-  $('resTitle').innerHTML=state.cad?'Resultado da sua empresa':'Resultado <span class="tag-ex">exemplo</span>';
-  $('ctaWho').textContent=state.cad?`Sua empresa · ${SEG[state.seg].label}, ${base.N} ${pl(base.N,'funcionário','funcionários')}`:`Simulação de exemplo: ${SEG[state.seg].label.toLowerCase()} com ${base.N} ${pl(base.N,'funcionário','funcionários')}`;
-  $('ctaText').textContent=state.cad?`Aberto ${base.D} ${pl(base.D,'dia','dias')} por semana. Clique para alterar os dados.`:'Cadastre a sua empresa para ver as sugestões para o seu caso.';
-  $('openCad').textContent=state.cad?'EDITAR CADASTRO DA EMPRESA':'CLIQUE AQUI PARA SIMULAR SUA EMPRESA';
+  $('line-sat').classList.toggle('off',!state.sat); $('line-sun').classList.toggle('off',!state.sun);
+  $('intro').hidden=!!state.cad; $('summaryBar').hidden=!state.cad; $('results').hidden=!state.cad;
+  $('ctaWho').textContent=`${SEG[state.seg].label} · ${base.N} ${pl(base.N,'funcionário','funcionários')}`;
+  $('ctaText').textContent=`Aberta ${base.D} ${pl(base.D,'dia','dias')} por semana`;
 
   // tiles
   const riskRoles=base.roles.filter(r=>r.cover&&(r.gapDays>0||r.gapH>r.gapHOld+0.01));
@@ -554,9 +642,9 @@ function render(){
   if(gapNames.length) cmp+=`<tr><td>Horas sem ninguém em ${esc(gapNames.join(', '))}<br><span class="hint">hoje quem cobre é o dono ou um colega</span></td><td>${fmtH(base.gapHOld)}</td><td><b>${fmtH(base.gapH)}</b>${base.extra>0?` <span class="delta bad">+${fmtH(base.extra)}</span>`:''}</td></tr>`;
   cmp+='</tbody></table>';
   $('tiles').innerHTML=`<section class="card diag">
-    <h2>${state.cad?'O que muda na sua empresa':'O que muda nesta empresa de exemplo'}</h2>
+    <h2>O que muda na sua empresa</h2>
     ${verdict}
-    <div class="next"><span>Caminho sugerido:</span> <b>${esc(best.title)}</b> <a href="#sugs">ver detalhes</a></div>
+    <div class="next"><span>Caminho sugerido:</span> <b>${esc(best.title)}</b> <a href="#sugsCard">ver detalhes</a></div>
   </section>`;
 
   // tabela por função
@@ -566,10 +654,10 @@ function render(){
       const hoje=r.gapHOld>0?'o dono ou um colega cobre parte do horário':'sempre tem alguém';
       const nova=[r.gapDays>0?`${r.gapDays} ${pl(r.gapDays,'dia','dias')} por semana sem ninguém`:r.gapH>0?'sem ninguém em parte do horário':''];
       const st=r.gapH<=0?'<span class="pill good">Coberta</span>':(r.gapDays>0||r.gapH>r.gapHOld+0.01)?`<span class="pill crit">Precisa de ${r.need} ${pl(r.need,'pessoa','pessoas')}</span>`:'<span class="pill warn">Igual a hoje</span>';
-      t+=`<tr><td><b>${esc(r.name)}</b><br><span class="hint">sempre alguém</span></td><td class="num">${r.n}</td><td>${hoje}</td><td>${nova.join('')||'sempre tem alguém'}</td><td>${st}</td></tr>`;
+      t+=`<tr><td><b>${esc(r.name)}</b> <span class="hint">(${r.n}, sempre alguém)</span></td><td class="num pc">${r.n}</td><td class="hj" data-label="Hoje">${hoje}</td><td class="nv" data-label="Com a 5x2">${nova.join('')||'sempre tem alguém'}</td><td class="st">${st}</td></tr>`;
     } else {
       const st=r.n===0?'<span class="pill info">Sem pessoas</span>':r.presNew<1?'<span class="pill warn">Dias com ninguém</span>':'<span class="pill info">Revezar folgas</span>';
-      t+=`<tr><td><b>${esc(r.name)}</b></td><td class="num">${r.n}</td><td>${(Math.round(r.presOld*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td>${(Math.round(r.presNew*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td>${st}</td></tr>`;
+      t+=`<tr><td><b>${esc(r.name)}</b> <span class="hint">(${r.n})</span></td><td class="num pc">${r.n}</td><td class="hj" data-label="Hoje">${(Math.round(r.presOld*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td class="nv" data-label="Com a 5x2">${(Math.round(r.presNew*10)/10).toLocaleString('pt-BR')} por dia, em média</td><td class="st">${st}</td></tr>`;
     }
   });
   $('roleTable').innerHTML=t+'</tbody>';
@@ -581,12 +669,13 @@ function render(){
     const head=group!==lastGroup&&group!=='best'?'<h3 class="grp">Outras opções</h3>':'';
     lastGroup=group;
     const tag=s.best?'<span class="pill info">Mais indicado</span>':'';
-    return head+`<article class="sug ${s.best?'best':''}">
-      <div class="sug-head"><h3><span class="rank">${k+1}.</span> ${esc(s.title)}</h3>${tag}</div>
-      ${s.best&&s.why?`<div><b>Por quê:</b> ${esc(s.why)}</div>`:''}
-      <ul>${s.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
+    const body=`<ul>${s.lines.map(l=>`<li>${esc(l)}</li>`).join('')}</ul>
       <div class="cost">${esc(s.costLabel)}</div>
-      <div class="care">${esc(s.care)}</div></article>`;
+      <div class="care">${esc(s.care)}</div>`;
+    if(s.best) return head+`<article class="sug best">
+      <div class="sug-head"><h3><span class="rank">${k+1}.</span> ${esc(s.title)}</h3>${tag}</div>
+      ${s.why?`<div><b>Por quê:</b> ${esc(s.why)}</div>`:''}${body}</article>`;
+    return head+`<details class="sug alt"><summary><span class="rank">${k+1}.</span> <span class="t">${esc(s.title)}</span><span class="more" aria-hidden="true"></span></summary>${body}</details>`;
   }).join('');
 
   // escala
@@ -598,7 +687,7 @@ function render(){
   modeSel.value=modes.some(m=>m.v===prev)&&rosterTouched?prev:def;
   const m=modes.find(x=>x.v===modeSel.value)||modes[0];
   const R=roster(m.sched,L,wd.i);
-  const hhmm=m=>{ const h=Math.floor(m/60), mi=Math.round(m%60); return String(h).padStart(2,'0')+(mi?':'+String(mi).padStart(2,'0'):'h'); };
+  const hhmm=m=>{ const h=Math.floor(m/60), mi=Math.round(m%60); return h+(mi?':'+String(mi).padStart(2,'0'):'h'); };
   let rt='<thead><tr><th>Pessoa</th>'+DAYS.map(d=>`<th>${d}</th>`).join('')+'</tr></thead><tbody>';
   R.rows.forEach(r=>{
     rt+=`<tr><td>${esc(r.label)}</td>`+r.cells.map(c=>c.t==='closed'?'<td class="c-closed">fechado</td>':c.t==='off'?'<td class="c-off">folga</td>':`<td>${hhmm(c.s)}–${hhmm(c.e)}</td>`).join('')+`</tr>`;
@@ -640,20 +729,26 @@ if(state){ fillForm(); render(); } else boot('varejo');
 
 $('f').addEventListener('input',e=>{
   if(e.target.id==='segmento') return;
-  state.cad=true; readForm(); if(/^(wk\d|sat|sun|wkOpen|wkClose|satOpen|satClose|sunOpen|sunClose)$/.test(e.target.id)){ }
-  render();
+  readForm(); render();
 });
-function applySeg(seg){ readForm(); const keep={cad:true}; state=Object.assign(defaults(seg),keep); rosterTouched=false; fillForm(); render(); }
+function applySeg(seg){ readForm(); const keep={cad:state.cad}; state=Object.assign(defaults(seg),keep); rosterTouched=false; fillForm(); render(); }
 segSel.addEventListener('change',()=>applySeg(segSel.value));
 const dlg=$('cad');
 function openCad(){ try{ dlg.showModal(); }catch(e){ dlg.setAttribute('open',''); } const f=$('segmento'); if(f) f.focus(); }
-function closeCad(){ try{ dlg.close(); }catch(e){ dlg.removeAttribute('open'); } render(); $('resTitle').scrollIntoView({block:'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'}); }
+const smooth=()=>matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth';
+let snapshot=null;
+function openCad(){ snapshot=JSON.stringify(state); try{ dlg.showModal(); }catch(e){ dlg.setAttribute('open',''); } dlg.scrollTop=0; const f=$('segmento'); if(f) f.focus(); }
+function shut(){ try{ dlg.close(); }catch(e){ dlg.removeAttribute('open'); } }
+function cancelCad(){ if(snapshot){ state=JSON.parse(snapshot); fillForm(); } shut(); render(); }
+function doneCad(){ readForm(); state.cad=true; rosterTouched=false; shut(); render(); window.scrollTo({top:0, behavior:smooth()}); }
 $('openCad').addEventListener('click',openCad);
-$('closeCad').addEventListener('click',closeCad);
-$('doneCad').addEventListener('click',closeCad);
-dlg.addEventListener('click',e=>{ if(e.target===dlg) closeCad(); });
+$('editCad').addEventListener('click',openCad);
+$('closeCad').addEventListener('click',cancelCad);
+$('cancelCad').addEventListener('click',cancelCad);
+$('doneCad').addEventListener('click',doneCad);
+dlg.addEventListener('cancel',e=>{ e.preventDefault(); cancelCad(); });
 $('rosterMode').addEventListener('change',()=>{ rosterTouched=true; render(); });
-$('reset').addEventListener('click',()=>{ state=null; boot(segSel.value||'varejo'); });
+$('restart').addEventListener('click',()=>{ state=null; rosterTouched=false; boot('varejo'); window.scrollTo({top:0, behavior:smooth()}); });
 })();
 </script>
 </body>
